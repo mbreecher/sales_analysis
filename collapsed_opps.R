@@ -35,3 +35,13 @@ opps_data <- opps[,names(opps) %in% c("Line.Item.18.Digit.Id", "Created.Date", "
 names(opps_data)[names(opps_data) %in% "Line.Item.18.Digit.Id"] <- c("opportunity_id")
 
 agg_prices <- merge(agg_prices, opps_data, by = "opportunity_id", all.x = T)
+agg_prices$Close.Date <- as.Date(agg_prices$Close.Date, format = "%m/%d/%Y"); agg_prices$Created.Date <- as.Date(agg_prices$Created.Date, format = "%m/%d/%Y")
+agg_prices$closed_period <- paste(year(agg_prices$Close.Date), ceiling(month(agg_prices$Close.Date)/3), sep = "")
+agg_prices$created_period <- paste(year(agg_prices$Created.Date), ceiling(month(agg_prices$Created.Date)/3), sep = "")
+
+Q4_closed_plot <- ggplot(agg_prices[agg_prices$reporting_period %in% "2013Q4",]) +
+  geom_bar(aes(x = closed_period, fill = service_type)) +
+  ggtitle("2013 Q4 services opportunity close period")
+
+setwd("C:/R/workspace/sales_analysis/output")
+ggsave("2013Q4_service_close_dates.png", Q4_closed_plot, width = 11, height = 8.5)
