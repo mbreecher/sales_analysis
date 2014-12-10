@@ -41,8 +41,10 @@ agg_prices$created_period <- paste(year(agg_prices$Created.Date), ceiling(month(
 agg_prices$month <- (year(agg_prices$Close.Date) - 2012)* 12 + month(agg_prices$Close.Date)
 agg_prices$month_name <- format(agg_prices$Close.Date, format = "%b-%y")
 agg_prices$month <- as.numeric(agg_prices$month)
+agg_prices$closed_int = (year(agg_prices$Close.Date) - 2012)* 4 + floor(month(agg_prices$Close.Date)/3)
+agg_prices$report_int = (as.numeric(substr(agg_prices$reporting_period,1,4))-2012)*4 + as.numeric(substr(agg_prices$reporting_period,6,6))
 
-agg_prices_counts <- ddply(agg_prices, .var = c("service_type", "closed_period", "reporting_period"),
+agg_prices_counts <- ddply(agg_prices, .var = c("service_type", "closed_period", "reporting_period","service_id"),
                         .fun = function(x){
                         data.frame(count = length(unique(x$service_id)),
                                   closed_int = (year(x$Close.Date) - 2012)* 4 + floor(month(x$Close.Date)/3),
@@ -51,16 +53,16 @@ agg_prices_counts <- ddply(agg_prices, .var = c("service_type", "closed_period",
                         })
 
 excluded <- c("Rush Charges", "Auditor Review", "Migration")
-#loop to plot all periods
-for (loop in unique(agg_prices_counts$reporting_period)){
-  if(dim(agg_prices_counts[agg_prices_counts$reporting_period %in% loop,]) > 100){
-    closed_loop_plot <- ggplot(agg_prices_counts[!(agg_prices_counts$service_type %in% excluded) &
-                                                !is.na(agg_prices_counts$closed_int) &
-                                                  agg_prices_counts$reporting_period %in% loop,]) +
+#loop to plot all periods 
+for (loop in unique(agg_prices$reporting_period)){
+  if(dim(agg_prices[agg_prices$reporting_period %in% loop,])[1] > 100){
+    closed_loop_plot <- ggplot(agg_prices[!(agg_prices$service_type %in% excluded) &
+                                                !is.na(agg_prices$closed_int) &
+                                                  agg_prices$reporting_period %in% loop,]) +
       geom_bar(aes(x = closed_int, fill = service_type)) +
-      geom_segment(aes(x = report_int +1, xend = report_int+1, y = 0, yend = 300), color = "red") +
-      scale_x_continuous(labels=unique(agg_prices_counts$reporting_period), 
-                         breaks =unique(agg_prices_counts$report_int)) +
+      geom_segment(aes(x = report_int + 1, xend = report_int+ 1, y = 0, yend = 300), color = "red") +
+      scale_x_continuous(labels=unique(agg_prices$reporting_period), 
+                         breaks =unique(agg_prices$report_int)) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
       ggtitle(paste(loop," services closed by period", sep = ""))
     
@@ -69,4 +71,27 @@ for (loop in unique(agg_prices_counts$reporting_period)){
            , closed_loop_plot, width = 14, height = 8.5)
   }
 }
+
 #plot services sold by individual contracts vs as a package
+valid_svc <- c("Roll Forward", "Full Service Roll Forward", "Standard Import", "Detail Tagging",
+               "Full Review", "Maintenance", "Full Service Standard Import")
+valid_agg_prices <- agg_prices[agg_prices$service_type %in% valid_svc,]
+counter <- ddply(valid_agg_prices, .var = c("opportunity_id"), .fun = function(x){
+  data.frame(line_item_count = length(unique(x$service_id)))
+})
+valid_agg_prices <- merge(valid_agg_prices, counter, by = c("opportunity_id"), all.x = T)
+valid_agg_prices$opp_type <- "package"
+valid_agg_prices[valid_agg_prices$line_item_count %in% "1",]$opp_type <- "single"
+valid_agg_prices <- valid_agg_prices[valid_agg_prices$reporting_period %in% c("2013Q1","2013Q2","2013Q3","2013Q4","2014Q1","2014Q2","2014Q3") ,]
+
+opp_type_plot <- ggplot(valid_agg_prices) + 
+  geom_bar(aes(x = report_int, fill = factor(opp_type)), position = "dodge", size = 3) +
+  scale_x_continuous(labels=unique(valid_agg_prices$reporting_period), 
+                   breaks =unique(valid_agg_prices$report_int)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~service_type) +
+  ggtitle("services sold as part of a package vs single")
+
+setwd("C:/R/workspace/sales_analysis/output")
+ggsave("services_from_opportunity_type.png", opp_type_plot, width = 11, height = 8.5)
+  
