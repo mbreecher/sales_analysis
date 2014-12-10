@@ -42,47 +42,10 @@ agg_prices$month <- (year(agg_prices$Close.Date) - 2012)* 12 + month(agg_prices$
 agg_prices$month_name <- format(agg_prices$Close.Date, format = "%b-%y")
 agg_prices$month <- as.numeric(agg_prices$month)
 
-#Q42013 plot
+
 excluded <- c("Rush Charges", "Auditor Review", "Migration")
-agg_prices$plot_label <- agg_prices$month_name;
-agg_prices$plot_x <- agg_prices$month; agg_prices[agg_prices$plot_x <= 21 & !is.na(agg_prices$plot_x),]$plot_x <- 21
-agg_prices[agg_prices$plot_x <= 21 & !is.na(agg_prices$plot_label),]$plot_label <- "Pre Q4"
-Q4_closed_plot <- ggplot(agg_prices[agg_prices$reporting_period %in% "2013Q4" & !(agg_prices$service_type %in% excluded),]) +
-  geom_bar(aes(x = plot_x, fill = service_type)) +
-  scale_x_continuous(labels=unique(agg_prices$plot_label), 
-                     breaks =unique(agg_prices$plot_x)) +
-  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
-  ggtitle("2013 Q4 services opportunity close period")
-
-setwd("C:/R/workspace/sales_analysis/output")
-ggsave("2013Q4_service_close_dates_by_month.png", Q4_closed_plot, width = 11, height = 8.5)
-
-#opportunity and service gap plot
-excluded <- c("Rush Charges", "Auditor Review", "Migration")
-agg_prices_counts <- ddply(agg_prices, .var = c("service_type", "closed_period", "reporting_period"),
-                           .fun = function(x){
-                             data.frame(count = length(unique(x$service_id)),
-                                        closed_int = (year(x$Close.Date) - 2012)* 4 + floor(month(x$Close.Date)/3),
-                                        report_int = (as.numeric(substr(x$reporting_period,1,4))-2012)*4 + as.numeric(substr(x$reporting_period,6,6))
-                                        )
-                           })
-
-agg_prices$plot_label <- agg_prices$month_name; agg_prices$plot_x <- agg_prices$month
-sold_gap_plot <- ggplot(agg_prices_counts[!(agg_prices_counts$service_type %in% excluded) &
-                                            !is.na(agg_prices_counts$closed_int),]) +
-  geom_linerange(aes(x = count, ymin = closed_int, ymax = report_int+1, color = service_type),
-                 position = position_dodge(1)) +
-  coord_flip() + 
-  geom_point(aes(x = count, y = closed_int, color = "closed")) +
-  geom_point(aes(x = count, y = report_int +1, color = "reported")) +
-#   geom_segment(aes(x = closed_int, y = count, xend = report_int, yend = count, fill = service_type), size = 2, alpha = .5) +
-  scale_y_continuous(labels=unique(agg_prices_counts$reporting_period), 
-                     breaks =unique(agg_prices_counts$report_int)) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggtitle("too messy")
-
 #loop to plot all periods
-for (loop in unique(agg_price_counts$reporting_period)){
+for (loop in unique(agg_prices_counts$reporting_period)){
   if(dim(agg_prices_counts[agg_prices_counts$reporting_period %in% loop,]) > 100){
     closed_loop_plot <- ggplot(agg_prices_counts[!(agg_prices_counts$service_type %in% excluded) &
                                                 !is.na(agg_prices_counts$closed_int) &
