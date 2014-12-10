@@ -42,6 +42,13 @@ agg_prices$month <- (year(agg_prices$Close.Date) - 2012)* 12 + month(agg_prices$
 agg_prices$month_name <- format(agg_prices$Close.Date, format = "%b-%y")
 agg_prices$month <- as.numeric(agg_prices$month)
 
+agg_prices_counts <- ddply(agg_prices, .var = c("service_type", "closed_period", "reporting_period"),
+                        .fun = function(x){
+                        data.frame(count = length(unique(x$service_id)),
+                                  closed_int = (year(x$Close.Date) - 2012)* 4 + floor(month(x$Close.Date)/3),
+                                  report_int = (as.numeric(substr(x$reporting_period,1,4))-2012)*4 + as.numeric(substr(x$reporting_period,6,6))
+                                  )
+                        })
 
 excluded <- c("Rush Charges", "Auditor Review", "Migration")
 #loop to plot all periods
