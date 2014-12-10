@@ -38,10 +38,20 @@ agg_prices <- merge(agg_prices, opps_data, by = "opportunity_id", all.x = T)
 agg_prices$Close.Date <- as.Date(agg_prices$Close.Date, format = "%m/%d/%Y"); agg_prices$Created.Date <- as.Date(agg_prices$Created.Date, format = "%m/%d/%Y")
 agg_prices$closed_period <- paste(year(agg_prices$Close.Date), ceiling(month(agg_prices$Close.Date)/3), sep = "")
 agg_prices$created_period <- paste(year(agg_prices$Created.Date), ceiling(month(agg_prices$Created.Date)/3), sep = "")
+agg_prices$month <- (year(agg_prices$Close.Date) - 2012)* 12 + month(agg_prices$Close.Date)
+agg_prices$month_name <- format(agg_prices$Close.Date, format = "%b-%y")
+agg_prices$month <- as.numeric(agg_prices$month)
 
-Q4_closed_plot <- ggplot(agg_prices[agg_prices$reporting_period %in% "2013Q4",]) +
-  geom_bar(aes(x = closed_period, fill = service_type)) +
+excluded <- c("Rush Charges", "Auditor Review", "Migration")
+agg_prices$plot_label <- agg_prices$month_name;
+agg_prices$plot_x <- agg_prices$month; agg_prices[agg_prices$plot_x <= 21 & !is.na(agg_prices$plot_x),]$plot_x <- 21
+agg_prices[agg_prices$plot_x <= 21 & !is.na(agg_prices$plot_label),]$plot_label <- "Pre Q4"
+Q4_closed_plot <- ggplot(agg_prices[agg_prices$reporting_period %in% "2013Q4" & !(agg_prices$service_type %in% excluded),]) +
+  geom_bar(aes(x = plot_x, fill = service_type)) +
+  scale_x_continuous(labels=unique(agg_prices$plot_label), 
+                     breaks =unique(agg_prices$plot_x)) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
   ggtitle("2013 Q4 services opportunity close period")
 
 setwd("C:/R/workspace/sales_analysis/output")
-ggsave("2013Q4_service_close_dates.png", Q4_closed_plot, width = 11, height = 8.5)
+ggsave("2013Q4_service_close_dates_by_month.png", Q4_closed_plot, width = 11, height = 8.5)
