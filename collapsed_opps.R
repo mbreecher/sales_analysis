@@ -13,15 +13,15 @@ opps <- read.csv("opportunities_and_products_for_psh.csv", header = T, stringsAs
 #grab project and collapsed time data from mysql database
 con <- dbConnect(dbDriver("MySQL"), user = username, password = password, dbname = "revenue_analysis")
 
-sql <- paste("select subcloud.service_id, subcloud.opportunity_id, timelog.is_psm, subcloud.account_name, subcloud.cik, subcloud.registrant_type, 
+sql <- paste("select subcloud.service_id, subcloud.opportunity_id, subcloud.account_name, subcloud.cik, subcloud.registrant_type, 
              subcloud.solution, subcloud.SrPSM, subcloud.PSM, subcloud.CSM, subcloud.Sr_CSM, subcloud.service_name, subcloud.cs_ps, 
-             subcloud.service_type, subcloud.form, subcloud.quarter_end, subcloud.filing_date, timelog.logged_date, subcloud.filing_deadline, subcloud.filing_deadline_recalc,
+             subcloud.service_type, subcloud.form, subcloud.quarter_end, subcloud.filing_date, subcloud.filing_deadline, subcloud.filing_deadline_recalc,
              subcloud.service_status, subcloud.customer_status, subcloud.year_end, subcloud.reporting_period, subcloud.service_period, subcloud.list_price, 
-             subcloud.sales_price, timelog.Billable, subcloud.filing_week_num, logged_week_num, relative_week_num, sum(timelog.hours) 
-             from subcloud left join timelog 
-             on subcloud.service_id collate latin1_bin = timelog.service_id collate latin1_bin
-             where subcloud.service_id like 'a0%' and service_status = 'Completed' and is_psm = 1 and not cs_ps = 'CS'
-             group by subcloud.service_id, subcloud.account_name, timelog.is_psm, relative_week_num", sep = "")                
+             subcloud.sales_price, subcloud.filing_week_num 
+             from subcloud left join opportunities 
+             on subcloud.opportunity_id collate latin1_bin = opportunities.opportunity_line_item_id collate latin1_bin
+             where subcloud.service_id like 'a0%' and service_status = 'Completed' and not subcloud.cs_ps = 'CS'
+             group by subcloud.service_id, subcloud.account_name", sep = "")                
 
 query <- dbGetQuery(con, sql)
 dbDisconnect(con)
@@ -94,4 +94,9 @@ opp_type_plot <- ggplot(valid_agg_prices) +
 
 setwd("C:/R/workspace/sales_analysis/output")
 ggsave("services_from_opportunity_type.png", opp_type_plot, width = 11, height = 8.5)
-  
+
+discount trend
+agg_opps <- aggregate(cbind(sales_price) ~ opportunity_id + Close.Date ,data = valid_agg_prices, FUN = sum)
+
+
+#recommendation accuracy
